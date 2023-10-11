@@ -15,6 +15,9 @@ import matplotlib.pyplot as plt
 from optimizers.network import *
 from optimizers.constrained import constrained_solve
 import requests
+import tensorflow as tf
+import warnings
+warnings.simplefilter('ignore')
 
 import sys
 import hashlib
@@ -67,7 +70,7 @@ copyfile("./.env", our_path+"/.env")
 data = pd.read_csv(path_to_input, sep = ' ')
 data.columns = ['Timestamp', 'File_ID', "File_Size"]
 # DataLength = len(data)
-DataLength = 659963
+DataLength = 659963//2
 # print(len(data)+10)
 # print(int((0+1)*DataLength/NumSeq))
 
@@ -114,7 +117,7 @@ os.makedirs(cachePath)
 for i in range(threshold):
     if X_t_1[i]==1:
         url = f"http://10.196.11.11:5001/download/{i}"
-        r = requests.get(url, data={'content': f"{i}"})
+        r = requests.get(url, data={'content': f"{i}"}, timeout=60)
         fp = open(f'../TempFilesDpp/{i}.txt', 'wb')
         fp.write(r.content)
         fp.close()
@@ -147,7 +150,7 @@ with tqdm(total=NumSeq) as pbar:
                 to_train = prev_demands[max(0, i-train_memory):]
                 model.set_weights(global_weights)
                 update_weight(model, to_train, past, future)
-                model.save("./models/init.hdf5")
+                model.save("./models/init.h5")
 
                 pred = predict_demand(model, prev_demands[i-past:])
                 pred = np.maximum(pred, np.zeros((pred.size,)))
@@ -242,61 +245,56 @@ with tqdm(total=NumSeq) as pbar:
             plt.savefig(our_path+"Download_Rate.jpg")
             plt.clf()
 
-            max_retries = 5
-            retry_delay = 0.01
-            for retry in range(max_retries):
-                try:
-                    for j in range(threshold):#
-                        if X_t[j]==1 and X_t_1[j]==0:
-                            url = f"http://10.196.11.11:5001/download/{j}"
-                            r = requests.get(url, data={'content': f"{j}"})
-                            f = open(f'../TempFilesDpp/{j}.txt', 'wb')
-                            f.write(r.content)
-                            f.close()
-                            source_path = f'../TempFilesDpp/{j}.txt'
-                            destination_path = f'../cached_file/{j}.txt'
-                            shutil.copy(source_path, destination_path)
-                            os.remove(f'../TempFilesDpp/{j}.txt')
+            # max_retries = 20
+            # retry_delay = 0.2
+            for j in range(threshold):#
+                if X_t[j]==1 and X_t_1[j]==0:
+                    url = f"http://10.196.11.11:5001/download/{j}"
+                    # for retry in range(max_retries):
+                        # try:
+                    r = requests.get(url, data={'content': f"{j}"}, timeout=60)
+                    f = open(f'../TempFilesDpp/{j}.txt', 'wb')
+                    f.write(r.content)
+                    f.close()
+                        #     break
+                        # except PermissionError:
+                        #     time.sleep(retry_delay)
+                        # else:
+                        #     print(f"Unable to access the file after {max_retries} retries.")
+                    source_path = f'../TempFilesDpp/{j}.txt'
+                    destination_path = f'../cached_file/{j}.txt'
+                    shutil.copy(source_path, destination_path)
+                    os.remove(f'../TempFilesDpp/{j}.txt')
 
-                        if X_t[j]==0 and X_t_1[j]==1:
-                            destination_path = f'../cached_file/{j}.txt'
-                            os.remove(destination_path)
-                    break
-                except PermissionError:
-                    time.sleep(retry_delay)
-                else:
-                    print(f"Unable to access the file after {max_retries} retries.")
+                if X_t[j]==0 and X_t_1[j]==1:
+                    destination_path = f'../cached_file/{j}.txt'
+                    os.remove(destination_path)
+                    
             X_t_1 = X_t
             
             prev_demands.append(next_dem)
 
             if i >= past+future:
-                model_path = 'models/init.hdf5'
+                model_path = 'models/init.h5'
                 url = "http://10.196.11.11:5001/upload_model/1"
                 with open(model_path, 'rb') as file:
                     files = {'file': (model_path, file)}
-                    response = requests.post(url, files=files)
-                print(response.text)
+                    response = requests.post(url, files=files, timeout=60)
 
             if i>=past+future:
                 url1 = "http://10.196.11.11:5001/get_global/"
-                r = requests.get(url1)
-                fp = open("models/global_model.hdf5", "wb")
+                r = requests.get(url1, timeout=60)
+                fp = open("models/global_model.h5", "wb")
                 fp.write(r.content)
                 fp.close()
-                downloaded_global_model = tf.keras.models.load_model('models/global_model.hdf5')
+                downloaded_global_model = tf.keras.models.load_model('models/global_model.h5')
                 global_model.set_weights(downloaded_global_model.get_weights())
-                print("Weight updated succesfully!")
 
             pbar.update(1)
             i = i+1
         else:
-            # print(len(data)+10)
-            # print(int((i+1)*DataLength/NumSeq))
-            sec = 2
-            time.sleep(sec)
+            time.sleep(2)
         
-
 
         pd.DataFrame(hit_rate).to_csv(our_path+'hit_rate.csv',index=False)
         pd.DataFrame(download_rate).to_csv(our_path+'download_rate.csv',index=False)

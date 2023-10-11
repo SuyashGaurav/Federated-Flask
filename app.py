@@ -33,7 +33,7 @@ def index():
             f.close()
         except:
             url = f"http://10.196.11.11:5001/download/{task_content}"
-            r = requests.get(url, data={'content': f"{task_content}"})
+            r = requests.get(url, data={'content': f"{task_content}"}, timeout=60)
             file_content = r.content.decode('utf-8')
             status = "File fetched from central server"
         
@@ -58,49 +58,6 @@ def serve_image(filename):
     # Use send_file to serve the image
     return send_file(image_dir + filename, mimetype='image/jpg')
 
-@app.route('/add_Data', methods=['POST'])
-def add_Data():
-    seq_no = app.config['seq_no']
-
-    if request.method == 'POST':
-        num = request.form['num']
-
-    file = open('DPP/Datasets/dataset.txt', 'a')
-    data_311 = open('DPP/Datasets/311_dataset.txt', 'r')
-    lines = data_311.readlines()
-    data = pd.read_csv('DPP/Datasets/311_dataset.txt', sep = ' ')
-    data.columns = ['Timestamp', 'File_ID', "File_Size"]
-
-    for i in range(int(seq_no*len(data)/10000), int((seq_no+int(num))*len(data)/10000)): #NumSeq = 10000
-        file.write(lines[i])
-
-        task_content = str(data.iloc[i]['File_ID'])
-        try:
-            f = open(f'cached_file/{task_content}.txt', 'r')
-            file_content = f.readline()
-            status = "File fetched from cache"
-            f.close()
-        except:#
-            url = f"http://10.196.11.11:5001/download/{task_content}"
-            r = requests.get(url, data={'content': f"{task_content}"})
-            f = open(f'AllFiles/{task_content}.txt', 'wb')
-            f.write(r.content)
-            f.close()
-            f = open(f'AllFiles/{task_content}.txt', 'r')
-            file_content = f.readline()
-            status = "File fetched from central server"
-            f.close()
-
-        new_task = Todo(content=task_content, status = status, file_content = file_content)
-        db.session.add(new_task)
-        db.session.commit()
-        
-    file.close()
-    data_311.close()
-    app.config['seq_no'] = seq_no+int(num)
-    print(str(app.config['seq_no'])+ "-------------")
-    return redirect('/')
-
 @app.route('/delete/<int:id>')
 def delete(id):
     task_to_delete = Todo.query.get_or_404(id)
@@ -120,7 +77,7 @@ def download(content):
         return sendfile
     else:
         url = f"http://10.196.11.11:5001/download/{content}"
-        r = requests.get(url, data={'content': f"{content}"})   
+        r = requests.get(url, data={'content': f"{content}"}, timeout=60)   
         file_data = io.BytesIO(r.content)
         return send_file(file_data, as_attachment=True, download_name=f"{content}.txt")
     

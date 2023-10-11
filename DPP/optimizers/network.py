@@ -30,7 +30,7 @@ def get_model(init_data, global_weights, past, future, threshold, use_saved=Fals
         if use_saved:
             try:
                 print("Loaded Model ...")
-                model = tf.keras.models.load_model('../models/init.hdf5')
+                model = tf.keras.models.load_model('../models/init.h5')
                 return model
             except:
                 pass
@@ -54,7 +54,7 @@ def get_model(init_data, global_weights, past, future, threshold, use_saved=Fals
             model.set_weights(global_weights)
             model.fit(X, y, epochs=30, verbose=0)
             print("Model fitting complete...")
-            model.save("./models/init.hdf5")
+            model.save("../models/init.h5")
         print("Model saved to ./models dir ...")
         return model
 

@@ -49,15 +49,6 @@
 <h4 style="text-align: center; margin-top: 30px; font-family:'Courier New', Courier, monospace">Last fetched value: {{tasks[-1].file_content}}</h4>
 {% endif %}
 <br>
-<div class="content">
-    <form action="/add_Data" method="POST">
-        <div class="form-group d-flex align-items-center">
-            <input type="number" name="num" id="num" class="form-control" placeholder="Enter number of Timeslot" min="0" max="999">
-            <button type="submit" class="btn btn-outline-success">Add_data</button>
-        </div>
-    </form>
-</div>
-<br>
 <div class="row" style="margin-top: 50px;">
     <div id="clockContainer">
         <img src="{{ url_for('serve_image', filename='Cache_Hit_Rate.jpg') }}" alt="Image 1">
