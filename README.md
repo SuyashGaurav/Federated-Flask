@@ -1,6 +1,5 @@
 # Federated-Flask
-
-This project demonstrates the implementation of the FedAvg algorithm in a Flask-based web application. FedAvg is a federated learning technique that enables Overview
+This project demonstrates the implementation of the FedAvg algorithm in a Flask-based web application. FedAvg is a federated learning technique that enables training machine learning models with data distributed across multiple clients, without the need to share sensitive data centrally.
 
 ## Description
 - Federated learning is a decentralized machine learning approach where clients (user devices or edge devices) participate in model training locally, without sharing their raw data with a central server.
