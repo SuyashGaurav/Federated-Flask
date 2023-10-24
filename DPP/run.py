@@ -126,7 +126,9 @@ for i in range(threshold):
         # Copy the file to the destination directory
         shutil.copy(source_path, destination_path)
         os.remove(f'../TempFilesDpp/{i}.txt')
-
+mse = 0
+w = 1.0
+neita = 1e-2
 i=0
 with tqdm(total=NumSeq) as pbar:
     while i<NumSeq:
@@ -168,6 +170,11 @@ with tqdm(total=NumSeq) as pbar:
                 err.append(e)
                 actual_cache_hit = np.dot(next_dem, X_t)
                 cache_hit.append(actual_cache_hit)
+                
+                #
+                mseError = np.linalg.norm(next_dem-pred,ord=2)
+                mse = mse + math.sqrt(mseError)
+                w = w*math.exp(-mse*neita/i)
                 
                 indices = np.argsort(next_dem)[::-1][:cache_constraint]
                 final = np.zeros((threshold,))
@@ -277,9 +284,10 @@ with tqdm(total=NumSeq) as pbar:
             if i >= past+future:
                 model_path = 'models/init.h5'
                 url = "http://10.196.11.11:5001/upload_model/1"
+                weight_data = {'integer': w}
                 with open(model_path, 'rb') as file:
                     files = {'file': (model_path, file)}
-                    response = requests.post(url, files=files, timeout=60)
+                    response = requests.post(url, files=files, data=weight_data, timeout=60)
 
             if i>=past+future:
                 url1 = "http://10.196.11.11:5001/get_global/"
@@ -289,6 +297,11 @@ with tqdm(total=NumSeq) as pbar:
                 fp.close()
                 downloaded_global_model = tf.keras.models.load_model('models/global_model.h5')
                 global_model.set_weights(downloaded_global_model.get_weights())
+
+            # if i>=past+future:
+            #     url2 = "http://10.196.11.11:5001/upload_w/1"
+            #     data = {'integer': w}
+            #     response = requests.post(url2, json=data, timeout=60)
 
             pbar.update(1)
             i = i+1
