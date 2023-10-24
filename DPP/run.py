@@ -173,7 +173,7 @@ with tqdm(total=NumSeq) as pbar:
                 final = np.zeros((threshold,))
                 final[indices] = 1
                 
-                
+                #
                 best = np.dot(next_dem, final)
                 best_maximum.append(best)
                         
